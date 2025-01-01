@@ -26,14 +26,7 @@ var rootCmd = &cobra.Command{
 	Short: "A CLI utility for searching the web directly from your terminal",
 	Long: `A lightning-fast command-line search utility written in Go. 
 Quickly search the web directly from your terminal with a clean,
-POSIX-compliant interface.
-
-## Features
-- Fast and lightweight web search from the terminal
-- POSIX-compliant command-line interface
-- Simple, intuitive syntax
-- Zero external dependencies for the core functionality
-`,
+POSIX-compliant interface.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// First read the config file
 		if err := initConfig(); err != nil {
