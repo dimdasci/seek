@@ -27,3 +27,6 @@ go.work.sum
 
 # the binary files
 bin/
+
+# the log files
+logs/
