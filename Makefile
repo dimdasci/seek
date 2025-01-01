@@ -1,6 +1,7 @@
 # Basic variables
 BINARY_NAME=seek
 BINARY_DIR=bin
+MODULE_NAME=github.com/dimdasci/seek
 
 # Version information
 VERSION=$(shell git describe --tags --always --dirty)
@@ -8,13 +9,17 @@ BUILD_TIME=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 
 # Build flags
-LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.CommitHash=${COMMIT_HASH}"
+LDFLAGS=-ldflags "\
+	-X ${MODULE_NAME}/cmd.Version=${VERSION} \
+	-X ${MODULE_NAME}/cmd.BuildTime=${BUILD_TIME} \
+	-X ${MODULE_NAME}/cmd.CommitHash=${COMMIT_HASH}"
+
 
 .PHONY: build clean
 
 # Build the application
 build:
-	@echo "Building ${BINARY_NAME}..."
+	@echo "Building ${BINARY_NAME} ${VERSION}..."
 	@mkdir -p ${BINARY_DIR}
 	go build ${LDFLAGS} -o ${BINARY_DIR}/${BINARY_NAME} .
 
