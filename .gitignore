@@ -29,5 +29,6 @@ bin/
 logs/
 
 # the data files
+.DS_Store
 output/
 data/
