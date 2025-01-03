@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dimdasci/seek/internal/model/plan"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"go.uber.org/zap"
@@ -34,9 +35,8 @@ func NewClient(apiKey string, logger *zap.Logger) *Client {
 	}
 }
 
-// SearchAnswer searches for an answer to the query using the OpenAI API.
-// It returns the answer as a string.
-func (c *Client) SearchAnswer(ctx context.Context, query string) (string, error) {
+// PlanSearch builds a search plan for given query, returns it and an error if any.
+func (c *Client) PlanSearch(ctx context.Context, query string) (*plan.Plan, error) {
 
 	chat, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
@@ -49,8 +49,17 @@ func (c *Client) SearchAnswer(ctx context.Context, query string) (string, error)
 		c.logger.Error("failed to get completion",
 			zap.Error(err),
 			zap.String("query", query))
-		return "", err
+		return nil, err
 	}
 
-	return chat.Choices[0].Message.Content, nil
+	// create plan from chat response
+	searchPlan, err := plan.New(chat.Choices[0].Message.Content)
+	if err != nil {
+		c.logger.Error("failed to create plan from chat response",
+			zap.Error(err),
+			zap.String("query", query))
+		return nil, err
+	}
+
+	return searchPlan, nil
 }

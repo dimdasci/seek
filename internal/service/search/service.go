@@ -24,10 +24,10 @@ func (s *Service) Search(ctx context.Context, query string) (string, error) {
 	s.logger.Info("Service: searching for answer",
 		zap.String("query", query))
 
-	answer, err := s.openaiClient.SearchAnswer(ctx, query)
+	searchPlan, err := s.openaiClient.PlanSearch(ctx, query)
 	if err != nil {
 		return "", fmt.Errorf("failed to search answer: %w", err)
 	}
 
-	return answer, nil
+	return searchPlan.String(), nil
 }
