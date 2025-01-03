@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dimdasci/seek/internal/model/plan"
+	"github.com/dimdasci/seek/internal/models"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/spf13/viper"
@@ -20,7 +20,7 @@ type Client struct {
 }
 
 const (
-	reasoningModel = openai.ChatModelO1Mini // Model to use for reasoning
+	reasoningModel = openai.ChatModelO1Preview // Model to use for reasoning
 	// serviceModel   = openai.ChatModelGPT4oMini // Model to use for service
 )
 
@@ -38,11 +38,15 @@ func NewClient(apiKey string, logger *zap.Logger) *Client {
 }
 
 // PlanSearch builds a search plan for given query, returns it and an error if any.
-func (c *Client) PlanSearch(ctx context.Context, query string) (*plan.Plan, error) {
+func (c *Client) PlanSearch(ctx context.Context, query string) (*models.Plan, error) {
 
 	// create a string with today's date
 	today := fmt.Sprintf("%d-%02d-%02d", time.Now().Year(), time.Now().Month(), time.Now().Day())
 	prompt := fmt.Sprintf("%v\n\nToday is %v.\n\n<information_request>%v<information_request>", planningPrompt, today, query)
+
+	// add timeout to the context
+	ctx, cancel := context.WithTimeout(ctx, viper.GetDuration("openai.reasoning.timeout"))
+	defer cancel()
 
 	chat, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
@@ -68,7 +72,7 @@ func (c *Client) PlanSearch(ctx context.Context, query string) (*plan.Plan, erro
 	)
 
 	// create plan from chat response
-	searchPlan, err := plan.New(chat.Choices[0].Message.Content)
+	searchPlan, err := models.NewPlan(chat.Choices[0].Message.Content)
 	if err != nil {
 		c.logger.Error("failed to create plan from chat response",
 			zap.Error(err),

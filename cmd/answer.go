@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/dimdasci/seek/internal/client/openai"
 	"github.com/dimdasci/seek/internal/service/search"
+	"github.com/dimdasci/seek/internal/service/websearch"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -30,6 +30,10 @@ var answerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(answerCmd)
 
+	// Set default values for timeouts
+	viper.SetDefault("openai.reasoning.timeout", "60s")
+	viper.SetDefault("websearch.tavily.timeout", "10s")
+
 	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the answer (markdown format)")
 }
 
@@ -46,15 +50,11 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 	}
 	// Initialize clients and services
 	openaiClient := openai.NewClient(apiKey, logger)
-	searchService := search.NewService(openaiClient, logger)
+	websearchService := websearch.NewTavilySearchService(logger)
+	searchService := search.NewService(openaiClient, websearchService, logger)
 
 	// Context with timeout
 	ctx := context.Background()
-
-	// Optional: Add timeout
-	viper.SetDefault("openai.timeout", 60)
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(viper.GetInt("openai.timeout"))*time.Second)
-	defer cancel()
 
 	// Search for the answer
 	answer, err := searchService.Search(ctx, question)

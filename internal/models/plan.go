@@ -1,5 +1,5 @@
 /* Package plan provides a model for a plan. */
-package plan
+package models
 
 import (
 	"encoding/json"
@@ -31,8 +31,8 @@ var (
 	jsonBlockRegex = regexp.MustCompile("(?s)```json\\s*\\n(.*?)\\n\\s*```")
 )
 
-// New creates a new search plan from stringified JSON.
-func New(jsonStr string) (*Plan, error) {
+// NewPlan creates a new search plan from stringified JSON.
+func NewPlan(jsonStr string) (*Plan, error) {
 	var err error
 	plan := &Plan{}
 
