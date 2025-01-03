@@ -38,6 +38,10 @@ func (s *Service) Search(ctx context.Context, query string) (string, error) {
 		return "", fmt.Errorf("search plan is nil")
 	}
 
+	if !p.Approved {
+		return "", fmt.Errorf("search plan is not approved: %s", p.Reason)
+	}
+
 	fmt.Printf("Going to perform %s search\n", p.SearchComplexity)
 
 	report, err := s.executePlan(ctx, p)
@@ -50,10 +54,6 @@ func (s *Service) Search(ctx context.Context, query string) (string, error) {
 func (s *Service) executePlan(ctx context.Context, plan *models.Plan) (string, error) {
 	if plan == nil {
 		return "", fmt.Errorf("search plan is nil")
-	}
-
-	if !plan.Approved {
-		return "", fmt.Errorf("search plan is not approved: %s", plan.Reason)
 	}
 
 	// execute simple search
