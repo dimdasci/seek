@@ -4,6 +4,7 @@ package models
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -83,7 +84,9 @@ func (p *Plan) validate() error {
 			return errors.New("search_plan is required for complex searches")
 		}
 	default:
-		return errors.New("invalid search complexity")
+		if p.Approved {
+			return fmt.Errorf("invalid search complexity: %s", p.SearchComplexity)
+		}
 	}
 
 	return nil
