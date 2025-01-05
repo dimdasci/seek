@@ -39,7 +39,7 @@ type TavilyResponse struct {
 }
 
 // Search performs a web search using the Tavily API.
-// Returns the answer and search results.
+// It returns the answer and search results, or an error.
 func (s *TavilySearchService) Search(ctx context.Context, query string) (answer string, results []models.SearchResult, err error) {
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"query":          query,

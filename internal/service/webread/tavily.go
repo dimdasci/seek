@@ -13,14 +13,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// TavilySearchService provides web search functionality.
+// TavilyReadService provides web reading functionality.
 type TavilyReadService struct {
 	APIKey  string
 	BaseURL string
 	logger  *zap.Logger
 }
 
-// NewTavilySearchService creates a new instance of TavilySearchService.
+// NewTavilyReadService creates a new instance of TavilyReadService.
 func NewTavilyReadService(logger *zap.Logger) *TavilyReadService {
 	return &TavilyReadService{
 		APIKey:  viper.GetString("websearch.tavily.api_key"),
@@ -29,6 +29,8 @@ func NewTavilyReadService(logger *zap.Logger) *TavilyReadService {
 	}
 }
 
+// Read sends a request to Tavily's extraction API for the given URLs.
+// It returns the web pages or an error.
 func (t *TavilyReadService) Read(ctx context.Context, urls []string) (*models.WebPages, error) {
 	requestBody, err := json.Marshal(map[string][]string{"urls": urls})
 	if err != nil {

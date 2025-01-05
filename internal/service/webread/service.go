@@ -148,7 +148,7 @@ func (r *ReadService) extractTitle(doc *html.Node) (string, error) {
 	return title, nil
 }
 
-// removeUnwantedTags traverses the HTML nodes and removes specified tags.
+// removeUnwantedTags removes unwanted tags from an HTML node and returns the cleaned node.
 func (r *ReadService) removeUnwantedTags(n *html.Node) *html.Node {
 	if n == nil {
 		return nil
