@@ -50,17 +50,29 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 		fmt.Println("OpenAI API key not found. Exiting...")
 		return
 	}
+
 	// Initialize clients and services
-	openaiClient := openai.NewClient(apiKey, logger)
+	openaiClient, err := openai.NewClient(
+		apiKey,
+		logger,
+		viper.GetString("openai.reasoning.model"),
+		viper.GetString("openai.completion.model"),
+		viper.GetDuration("openai.reasoning.timeout"),
+		viper.GetDuration("openai.completion.timeout"),
+		viper.GetInt64("openai.reasoning.max_tokens"),
+		viper.GetInt64("openai.completion.max_tokens"),
+	)
+	if err != nil {
+		logger.Error("Failed to create OpenAI client", zap.Error(err))
+		fmt.Printf("Failed to create OpenAI client: %v\n", err)
+		return
+	}
 	webSearcher := websearch.NewTavilySearchService(logger, viper.GetDuration("websearch.tavily.timeout"))
 	webReader := webread.NewReadService(logger, viper.GetDuration("webread.timeout"))
 	searchService := search.NewService(openaiClient, webSearcher, webReader, logger)
 
-	// Context with timeout
-	ctx := context.Background()
-
 	// Search for the answer
-	answer, err := searchService.Search(ctx, question)
+	answer, err := searchService.Search(context.Background(), question)
 	if err != nil {
 		logger.Error("Failed to get answer", zap.Error(err))
 		fmt.Printf("Failed to get answer: %v\n", err)

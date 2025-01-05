@@ -2,83 +2,80 @@
 package openai
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	"github.com/dimdasci/seek/internal/models"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
 // Client is a client for the OpenAI API.
 type Client struct {
-	client *openai.Client // OpenAI API client
-	logger *zap.Logger    // Logger
+	client              *openai.Client   // OpenAI API client
+	logger              *zap.Logger      // Logger
+	reasoningModel      openai.ChatModel // Model to use for reasoning
+	completionModel     openai.ChatModel // Model to use for completion
+	reasoningTimeout    time.Duration    // Timeout for reasoning
+	completionTimeout   time.Duration    // Timeout for completion
+	reasoningMaxTokens  int64            // Max tokens for reasoning
+	completionMaxTokens int64            // Max tokens for completion
 }
-
-const (
-	reasoningModel = openai.ChatModelO1Preview // Model to use for reasoning
-	// serviceModel   = openai.ChatModelGPT4oMini // Model to use for service
-)
 
 // NewClient creates a new OpenAI API client with apiKey, and logger.
 // It returns a pointer to the client.
-func NewClient(apiKey string, logger *zap.Logger) *Client {
+func NewClient(
+	apiKey string,
+	logger *zap.Logger,
+	reasoningModel openai.ChatModel,
+	completionModel openai.ChatModel,
+	reasoningTimeout time.Duration,
+	completionTimeout time.Duration,
+	reasoningMaxTokens int64,
+	completionMaxTokens int64,
+) (*Client, error) {
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
 	)
 
-	return &Client{
-		client: client,
-		logger: logger,
+	rm, err := model(reasoningModel)
+	if err != nil {
+		logger.Fatal("failed to create reasoning model",
+			zap.Error(err),
+			zap.String("requested model", reasoningModel))
+		return nil, err
 	}
+
+	sm, err := model(completionModel)
+	if err != nil {
+		logger.Fatal("failed to create service model",
+			zap.Error(err),
+			zap.String("requested model", completionModel))
+		return nil, err
+	}
+
+	return &Client{
+		client:              client,
+		logger:              logger,
+		reasoningModel:      rm,
+		completionModel:     sm,
+		reasoningTimeout:    reasoningTimeout,
+		completionTimeout:   completionTimeout,
+		reasoningMaxTokens:  reasoningMaxTokens,
+		completionMaxTokens: completionMaxTokens,
+	}, nil
 }
 
-// PlanSearch builds a search plan for given query, returns it and an error if any.
-func (c *Client) PlanSearch(ctx context.Context, query string) (*models.Plan, error) {
+func model(m string) (openai.ChatModel, error) {
+	switch m {
+	case "gpt4", "gpt4o-mini":
+		return openai.ChatModelGPT4oMini, nil
+	case "o1-preview":
+		return openai.ChatModelO1Preview, nil
+	case "gpt4o":
+		return openai.ChatModelGPT4o, nil
 
-	// create a string with today's date
-	today := fmt.Sprintf("%d-%02d-%02d", time.Now().Year(), time.Now().Month(), time.Now().Day())
-	prompt := fmt.Sprintf("%v\n\nToday is %v.\n\n<information_request>%v<information_request>", planningPrompt, today, query)
-
-	// add timeout to the context
-	ctx, cancel := context.WithTimeout(ctx, viper.GetDuration("openai.reasoning.timeout"))
-	defer cancel()
-
-	chat, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(prompt),
-		}),
-		Model:               openai.F(reasoningModel),
-		MaxCompletionTokens: openai.Int(viper.GetInt64("openai.reasoning.max_tokens")),
-	})
-
-	if err != nil {
-		c.logger.Error("failed to get completion",
-			zap.Error(err),
-			zap.String("query", query))
-		return nil, err
+	default:
+		return "", fmt.Errorf("unknown model: %s", m)
 	}
-
-	// Log completion reason
-	c.logger.Info("Search plan completion reason",
-		zap.String("reason", string(chat.Choices[0].FinishReason)),
-		zap.String("model", chat.Model),
-		zap.Int64("completion tokens", chat.Usage.CompletionTokens),
-		zap.Int64("max tokens", viper.GetInt64("openai.reasoning.max_tokens")),
-	)
-
-	// create plan from chat response
-	searchPlan, err := models.NewPlan(chat.Choices[0].Message.Content)
-	if err != nil {
-		c.logger.Error("failed to create plan from chat response",
-			zap.Error(err),
-			zap.String("query", query))
-		return nil, err
-	}
-
-	return searchPlan, nil
 }

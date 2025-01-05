@@ -74,7 +74,7 @@ func (s *Service) executePlan(ctx context.Context, plan *models.Plan) (string, e
 	var notes string
 	switch plan.SearchComplexity {
 	case "simple":
-		notes = s.executeSimpleSearch(ctx, *plan.SearchQuery)
+		notes = s.executeSimpleSearch(ctx, *plan.SearchQuery, plan.CompilationPolicy)
 	case "complex":
 		notes = s.executeComplexSearch(ctx, plan.SearchPlan)
 	default:
@@ -84,7 +84,7 @@ func (s *Service) executePlan(ctx context.Context, plan *models.Plan) (string, e
 	return notes, nil
 }
 
-func (s *Service) executeSimpleSearch(ctx context.Context, query string) string {
+func (s *Service) executeSimpleSearch(ctx context.Context, query string, policy string) string {
 	fmt.Printf("Query:       %s\n", query)
 
 	// perform web search
@@ -122,17 +122,20 @@ func (s *Service) executeSimpleSearch(ctx context.Context, query string) string 
 
 	fmt.Printf("Read  %d pages, got %d error\n", len(pages.Pages), len(pages.Errors))
 
-	// build map of URLs to page titles from search results
-	titles := make(map[string]string, len(results))
-	for _, result := range results {
-		titles[result.URL] = result.Title
-	}
+	// call compiler
+	answer = s.openaiClient.CompileResults(ctx, pages.Pages, &query, &policy)
 
-	var notes string
-	for _, page := range pages.Pages {
-		notes += fmt.Sprintf("## %s\n\n%s\n\n%s\n\n", titles[page.URL], page.URL, page.Content)
-	}
-	return fmt.Sprintf("%v\n\n%v", answer, notes)
+	// build map of URLs to page titles from search results
+	// titles := make(map[string]string, len(results))
+	// for _, result := range results {
+	// 	titles[result.URL] = result.Title
+	// }
+
+	// var notes string
+	// for _, page := range pages.Pages {
+	// 	notes += fmt.Sprintf("## %s\n\n%s\n\n%s\n\n", titles[page.URL], page.URL, page.Content)
+	// }
+	return answer //fmt.Sprintf("%v\n\n%v", answer, notes)
 }
 
 func (s *Service) executeComplexSearch(ctx context.Context, steps []models.Search) string {

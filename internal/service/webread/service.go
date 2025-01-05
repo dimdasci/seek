@@ -34,6 +34,7 @@ func NewReadService(logger *zap.Logger, timeout time.Duration) *ReadService {
 			"head":   {},
 			"form":   {},
 			"select": {},
+			"image":  {},
 		},
 		timeout: timeout,
 	}
@@ -49,6 +50,20 @@ func (r *ReadService) Read(ctx context.Context, urls []string) (*models.WebPages
 		go func(url string) {
 			defer wg.Done()
 			r.logger.Debug("Reading web page", zap.String("url", url))
+
+			// if the URL is not valid, skip it
+			if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+				r.logger.Error("Invalid URL", zap.String("url", url))
+				errors <- models.PageError{URL: url, Error: "invalid URL"}
+				return
+			}
+
+			// if url is PDF, skip it
+			if strings.HasSuffix(url, ".pdf") {
+				r.logger.Error("PDF file", zap.String("url", url))
+				errors <- models.PageError{URL: url, Error: "PDF file"}
+				return
+			}
 
 			htmlContent, err := r.fetchHTML(ctx, url)
 			if err != nil {
