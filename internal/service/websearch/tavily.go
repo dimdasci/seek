@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/dimdasci/seek/internal/models" // Adjust the import path accordingly
 	"github.com/spf13/viper"
@@ -18,14 +19,16 @@ type TavilySearchService struct {
 	APIKey  string
 	BaseURL string
 	logger  *zap.Logger
+	timeout time.Duration
 }
 
 // NewTavilySearchService creates a new instance of TavilySearchService.
-func NewTavilySearchService(logger *zap.Logger) *TavilySearchService {
+func NewTavilySearchService(logger *zap.Logger, timeout time.Duration) *TavilySearchService {
 	return &TavilySearchService{
 		APIKey:  viper.GetString("websearch.tavily.api_key"),
-		BaseURL: viper.GetString("websearch.tavily.base_url"),
+		BaseURL: viper.GetString("websearch.tavily.search_url"),
 		logger:  logger,
+		timeout: timeout,
 	}
 }
 
@@ -50,7 +53,7 @@ func (s *TavilySearchService) Search(ctx context.Context, query string) (answer 
 	}
 
 	// add timeout to the context
-	ctx, cancel := context.WithTimeout(ctx, viper.GetDuration("websearch.tavily.timeout"))
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, "POST", s.BaseURL, bytes.NewBuffer(requestBody))

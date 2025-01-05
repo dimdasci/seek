@@ -11,6 +11,7 @@ import (
 
 	"github.com/dimdasci/seek/internal/client/openai"
 	"github.com/dimdasci/seek/internal/service/search"
+	"github.com/dimdasci/seek/internal/service/webread"
 	"github.com/dimdasci/seek/internal/service/websearch"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -33,6 +34,7 @@ func init() {
 	// Set default values for timeouts
 	viper.SetDefault("openai.reasoning.timeout", "60s")
 	viper.SetDefault("websearch.tavily.timeout", "10s")
+	viper.SetDefault("webread.timeout", "10s")
 
 	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the answer (markdown format)")
 }
@@ -50,8 +52,9 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 	}
 	// Initialize clients and services
 	openaiClient := openai.NewClient(apiKey, logger)
-	websearchService := websearch.NewTavilySearchService(logger)
-	searchService := search.NewService(openaiClient, websearchService, logger)
+	webSearcher := websearch.NewTavilySearchService(logger, viper.GetDuration("websearch.tavily.timeout"))
+	webReader := webread.NewReadService(logger, viper.GetDuration("webread.timeout"))
+	searchService := search.NewService(openaiClient, webSearcher, webReader, logger)
 
 	// Context with timeout
 	ctx := context.Background()
