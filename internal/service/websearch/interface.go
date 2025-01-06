@@ -9,5 +9,5 @@ import (
 
 // WebSearcher defines the interface for web search functionality.
 type WebSearcher interface {
-	Search(ctx context.Context, query string) (answer string, results []models.SearchResult, err error)
+	Search(ctx context.Context, query string) ([]models.SearchResult, error)
 }

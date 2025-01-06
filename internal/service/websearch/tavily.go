@@ -40,7 +40,7 @@ type TavilyResponse struct {
 
 // Search performs a web search using the Tavily API.
 // It returns the answer and search results, or an error.
-func (s *TavilySearchService) Search(ctx context.Context, query string) (answer string, results []models.SearchResult, err error) {
+func (s *TavilySearchService) Search(ctx context.Context, query string) ([]models.SearchResult, error) {
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"query":          query,
 		"max_results":    viper.GetInt("websearch.tavily.max_results"),
@@ -49,7 +49,7 @@ func (s *TavilySearchService) Search(ctx context.Context, query string) (answer 
 	s.logger.Debug("Request body", zap.String("body", string(requestBody)))
 
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to marshal request body: %w", err)
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
 	// add timeout to the context
@@ -58,7 +58,7 @@ func (s *TavilySearchService) Search(ctx context.Context, query string) (answer 
 
 	req, err := http.NewRequestWithContext(ctx, "POST", s.BaseURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -67,7 +67,7 @@ func (s *TavilySearchService) Search(ctx context.Context, query string) (answer 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to perform request: %w", err)
+		return nil, fmt.Errorf("failed to perform request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -76,13 +76,13 @@ func (s *TavilySearchService) Search(ctx context.Context, query string) (answer 
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", nil, fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("unexpected status code: %d, response: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var tavilyResp TavilyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tavilyResp); err != nil {
-		return "", nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return tavilyResp.Answer, tavilyResp.Results, nil
+	return tavilyResp.Results, nil
 }

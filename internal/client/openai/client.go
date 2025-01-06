@@ -20,6 +20,9 @@ type Client struct {
 	completionTimeout   time.Duration    // Timeout for completion
 	reasoningMaxTokens  int64            // Max tokens for reasoning
 	completionMaxTokens int64            // Max tokens for completion
+
+	analysisResultSchemaParam    openai.ResponseFormatJSONSchemaJSONSchemaParam // Schema for analysis result
+	compilationResultSchemaParam openai.ResponseFormatJSONSchemaJSONSchemaParam // Schema for compilation result
 }
 
 // NewClient creates a new OpenAI API client with apiKey, and logger.
@@ -54,15 +57,30 @@ func NewClient(
 		return nil, err
 	}
 
+	analysisResultSchemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("PageAnalysis"), // Updated to match the required pattern
+		Description: openai.F("Relevance and key points from the page"),
+		Schema:      openai.F(GenerateSchema[AnalysisResult]()),
+		Strict:      openai.Bool(true),
+	}
+	compilationResultSchemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("PageAnalysis"), // Updated to match the required pattern
+		Description: openai.F("Relevance and key points from the page"),
+		Schema:      openai.F(GenerateSchema[CompilationResult]()),
+		Strict:      openai.Bool(true),
+	}
+
 	return &Client{
-		client:              client,
-		logger:              logger,
-		reasoningModel:      rm,
-		completionModel:     sm,
-		reasoningTimeout:    reasoningTimeout,
-		completionTimeout:   completionTimeout,
-		reasoningMaxTokens:  reasoningMaxTokens,
-		completionMaxTokens: completionMaxTokens,
+		client:                       client,
+		logger:                       logger,
+		reasoningModel:               rm,
+		completionModel:              sm,
+		reasoningTimeout:             reasoningTimeout,
+		completionTimeout:            completionTimeout,
+		reasoningMaxTokens:           reasoningMaxTokens,
+		completionMaxTokens:          completionMaxTokens,
+		analysisResultSchemaParam:    analysisResultSchemaParam,
+		compilationResultSchemaParam: compilationResultSchemaParam,
 	}, nil
 }
 

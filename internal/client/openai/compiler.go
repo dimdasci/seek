@@ -22,6 +22,21 @@ func (c *Client) CompileResults(
 ) string {
 	c.logger.Info("Compiling results", zap.String("request", *request))
 
+	// gather key points from relevant pages
+	keyPoints := c.getherKeyPoints(ctx, pages, request, instructions)
+
+	// compile findings
+	return c.compileFindings(keyPoints, *request, *instructions)
+}
+
+// getherKeyPoints gathers key points from relevant pages.
+// It returns a string with the key points from all relevant pages.
+func (c *Client) getherKeyPoints(
+	ctx context.Context,
+	pages []models.Page,
+	request *string,
+	instructions *string,
+) string {
 	var wg sync.WaitGroup
 	results := make(chan string)
 	done := make(chan struct{})
@@ -91,21 +106,6 @@ func (c *Client) analyzePage(
 
 	c.logger.Debug("Relevance", zap.String("user_prompt", prompt))
 
-	// Structured output schemas
-	type Result struct {
-		ReasoningSteps []Step `json:"reasoning_steps" jsonschema_description:"The chain of reasoning"`
-		Relevance      bool   `json:"relevance" jsonschema_description:"The relevance of the page to the request"`
-		Answer         string `json:"answer" jsonschema_description:"The key points from the page"`
-	}
-	resultSchema := GenerateSchema[Result]()
-
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("PageAnalysis"), // Updated to match the required pattern
-		Description: openai.F("Relevance and key points from the page"),
-		Schema:      openai.F(resultSchema),
-		Strict:      openai.Bool(true),
-	}
-
 	// add timeout to the context
 	ctx, cancel := context.WithTimeout(ctx, c.reasoningTimeout)
 	defer cancel()
@@ -121,7 +121,7 @@ func (c *Client) analyzePage(
 		ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
 			openai.ResponseFormatJSONSchemaParam{
 				Type:       openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
-				JSONSchema: openai.F(schemaParam),
+				JSONSchema: openai.F(c.analysisResultSchemaParam),
 			},
 		),
 	})
@@ -145,7 +145,7 @@ func (c *Client) analyzePage(
 	)
 
 	// create result from chat response
-	result := Result{}
+	result := AnalysisResult{}
 	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &result)
 	if err != nil {
 		c.logger.Error("failed to unmarshal chat response",
@@ -161,4 +161,70 @@ func (c *Client) analyzePage(
 		zap.String("answer", result.Answer))
 
 	return result.Relevance, result.Answer, nil
+}
+
+func (c *Client) compileFindings(results string, topic string, policy string) string {
+	c.logger.Info("Compiling findings", zap.String("topic", topic))
+
+	prompt := fmt.Sprintf("%v\n\n"+
+		"<information_topic>%v<information_topic>"+
+		"<search_results>%v<search_results>"+
+		"<compilation_policy>%v<compilation_policy>",
+		compilationPrompt,
+		topic,
+		results,
+		policy)
+
+	c.logger.Debug("Compilation", zap.String("prompt", prompt))
+
+	// add timeout to the context
+	ctx, cancel := context.WithTimeout(context.Background(), c.completionTimeout)
+	defer cancel()
+
+	chat, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(relevanceSystemPrompt),
+			openai.UserMessage(prompt),
+		}),
+		Model:               openai.F(c.completionModel),
+		MaxCompletionTokens: openai.Int(c.completionMaxTokens),
+		Temperature:         openai.Float(0.1),
+		ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
+			openai.ResponseFormatJSONSchemaParam{
+				Type:       openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
+				JSONSchema: openai.F(c.compilationResultSchemaParam),
+			},
+		),
+	})
+
+	if err != nil {
+		c.logger.Error("failed to compile findings",
+			zap.Error(err),
+			zap.String("topic", topic))
+		return ""
+	}
+
+	// Log completion stats
+	c.logger.Info("Compilation",
+		zap.String("reason", string(chat.Choices[0].FinishReason)),
+		zap.String("model", chat.Model),
+		zap.Int64("input tokens", chat.Usage.PromptTokens),
+		zap.Int64("completion tokens", chat.Usage.CompletionTokens),
+		zap.Int64("max tokens", c.completionMaxTokens))
+
+	// create result from chat response
+	result := CompilationResult{}
+	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &result)
+	if err != nil {
+		c.logger.Error("failed to unmarshal chat response",
+			zap.Error(err),
+			zap.String("completion", chat.Choices[0].Message.Content))
+		return ""
+	}
+
+	c.logger.Debug("Compilation Done",
+		zap.String("topic", topic),
+		zap.String("compilation", result.Compilation))
+
+	return result.Compilation
 }

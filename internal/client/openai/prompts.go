@@ -95,8 +95,27 @@ Evaluate relevance based on:
 
 Before responding, describe the analysis step by step according to the chain of reasoning.
 
-If the page content is relevant to the information request, follow compilation instructions to compile the answer. Otherwise provide the answer "Not relevant".
+If the page content is relevant to the information request, follow compilation instructions to compile the answer. 
+Otherwise provide the answer "Not relevant".
 
-Do not write any introduction or conclusion. Format the answer as a markdown text starting with the title of the page as h1 and the URL in the next line. Then provide the extracted information using subheaders starting from level 2 if needed. Use bullet points carefully, only when the list is necessary.
+Do not write any introduction or conclusion. Format the answer as a markdown text starting with the title of the page as h1 and the URL in the next line. 
+Then provide the extracted information using subheaders starting from level 2 if needed. Use bullet points carefully, only when the list is necessary.
 <instructions>
+`
+
+const compilationPrompt string = `<instructions>You are provided with:
+- information topic,
+- search results from a web search on the topic,
+- and a compilation policy.
+
+Compile the findings from the all web search into a comprehensive report addressing the information request. 
+Use the most relevant and authoritative sources from the findings to compile the answer. 
+
+Before responding, describe the solution step by step according to the chain of reasoning.
+
+Format your response as a section of the further report starting with topic as level 2 header. 
+Put links to 2-3 most relevant sources in the end of the section as a list.
+
+Use markdown syntax to structure the report and provide the information in a clear and organized manner. 
+Use bullet points carefully, only when the list is necessary.<instructions>
 `
