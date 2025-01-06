@@ -7,8 +7,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *Service) executeSimpleSearch(ctx context.Context, query string, policy string) string {
-	fmt.Printf("Query:       %s\n", query)
+// executeSimpleSearch performs a simple search for the given query.
+// It returns a string with the search results.
+func (s *Service) executeSimpleSearch(
+	ctx context.Context,
+	topic string,
+	query string,
+	policy string,
+) string {
+	fmt.Printf("Query: %s\n\n", query)
 
 	s.logger.Debug("Simple search",
 		zap.String("query", query),
@@ -47,20 +54,7 @@ func (s *Service) executeSimpleSearch(ctx context.Context, query string, policy 
 			zap.String("error", page.Error))
 	}
 
-	fmt.Printf("Read  %d pages, got %d error\n", len(pages.Pages), len(pages.Errors))
+	answer := s.openaiClient.CompileResults(ctx, pages.Pages, &topic, &policy)
 
-	// call compiler
-	answer := s.openaiClient.CompileResults(ctx, pages.Pages, &query, &policy)
-
-	// build map of URLs to page titles from search results
-	// titles := make(map[string]string, len(results))
-	// for _, result := range results {
-	// 	titles[result.URL] = result.Title
-	// }
-
-	// var notes string
-	// for _, page := range pages.Pages {
-	// 	notes += fmt.Sprintf("## %s\n\n%s\n\n%s\n\n", titles[page.URL], page.URL, page.Content)
-	// }
-	return answer //fmt.Sprintf("%v\n\n%v", answer, notes)
+	return answer
 }
