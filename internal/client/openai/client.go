@@ -90,6 +90,8 @@ func model(m string) (openai.ChatModel, error) {
 		return openai.ChatModelGPT4oMini, nil
 	case "o1-preview":
 		return openai.ChatModelO1Preview, nil
+	case "o1-mini":
+		return openai.ChatModelO1Mini, nil
 	case "gpt4o":
 		return openai.ChatModelGPT4o, nil
 
