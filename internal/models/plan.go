@@ -13,7 +13,7 @@ import (
 type Plan struct {
 	Approved          bool     `json:"approved"`           // Approved field set to false if request contains illegal content or other instructions
 	Reason            string   `json:"reason"`             // Reason for approval or rejection
-	SearchQuery       *string  `json:"search_query"`       // Web search query for simple requests, null for complex requests
+	SearchQuery       string   `json:"search_query"`       // Web search query for simple requests, null for complex requests
 	SearchComplexity  string   `json:"search_complexity"`  // Search complexity: simple or complex
 	SearchPlan        []Search `json:"search_plan"`        // Search plan for the request
 	CompilationPolicy string   `json:"compilation_policy"` // Policy to compile the findings into the final report
@@ -70,16 +70,13 @@ func (p *Plan) validate() error {
 	// Validate based on complexity
 	switch p.SearchComplexity {
 	case "simple":
-		if p.SearchQuery == nil {
+		if p.SearchQuery == "" {
 			return errors.New("searchQuery is required for simple searches")
 		}
 		if len(p.SearchPlan) > 0 {
 			return errors.New("search_plan should be empty for simple searches")
 		}
 	case "complex":
-		if p.SearchQuery != nil {
-			return errors.New("searchQuery should be null for complex searches")
-		}
 		if len(p.SearchPlan) == 0 {
 			return errors.New("search_plan is required for complex searches")
 		}

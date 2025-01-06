@@ -74,9 +74,13 @@ func (s *Service) executePlan(ctx context.Context, plan *models.Plan) (string, e
 	var notes string
 	switch plan.SearchComplexity {
 	case "simple":
-		notes = s.executeSimpleSearch(ctx, *plan.SearchQuery, *plan.SearchQuery, plan.CompilationPolicy)
+		notes = fmt.Sprintf(
+			"# %s\n\n%s",
+			plan.SearchQuery,
+			s.executeSimpleSearch(ctx, plan.SearchQuery, plan.SearchQuery, plan.CompilationPolicy))
+
 	case "complex":
-		notes = s.executeComplexSearch(ctx, plan.SearchPlan)
+		notes = s.executeComplexSearch(ctx, plan)
 	default:
 		return "", fmt.Errorf("unknown search complexity: %s", plan.SearchComplexity)
 	}

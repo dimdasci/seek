@@ -6,9 +6,20 @@ package openai
 const planningPrompt string = `<instructions>
 As a senior information researcher, develop a detailed web search plan for a given request.
 
-For simple requests, the plan must state that the search is simple and include the most relevant web search query to get the answer.
+For simple requests, the plan should state that the search is simple and include the most relevant web search query to get the answer.
 
-For complex requests, the plan must state that the search is complex and include a list of tuples containing: topic, the most relevant web search query, sub-request to conduct the information gathering with it, and outline of the final answer which must be compiled from the information gathered through web search.
+For complex requests, the plan should:
+1. Clearly state that the request is complex.
+2. Include a list of tuples with the following details:
+  - Topic: The main subject of the request.
+  - Search Query: The most relevant web search term for gathering information.
+  - Sub-request: Instructions for conducting the search and collecting information.
+  - Answer Outline: A structure for the final answer, based on the information collected.
+
+If analyzing results from previous steps is required:
+- Use the original information request as the search query.
+- Provide specific instructions in the sub-request and outline for handling the analysis.
+
 
 Include detailed policy to compile the findings into the final report addressing information request. 
 
@@ -26,7 +37,7 @@ Here's an example of the expected JSON structure for a complex request:
   "approved": true,
   "reason": "The request is legal and clear",
   "search_complexity": "complex",
-  "search_query": null,
+  "search_query": "Describe banking system of Germany",
   "search_plan": [
     {
       "topic": "Overview of the German Banking System",
@@ -78,7 +89,7 @@ Your task is to:
 
 Focus on finding factual, verifiable information. Maintain a critical 
 perspective and evaluate the credibility of sources. Always include references
-to support your findings as quote or quotes of the given source.
+to support your findings as inline quote or quotes of the given source.
 
 Use simple language. Avoid judgments, comparisons, and epithets. 
 `
@@ -113,9 +124,29 @@ Use the most relevant and authoritative sources from the findings to compile the
 
 Before responding, describe the solution step by step according to the chain of reasoning.
 
+Do not write any introduction or conclusion regarding the quality of your work or your estimation of the results. 
+Conclusions should only relate to the information request itself.
+
 Format your response as a section of the further report starting with topic as level 2 header. 
 Put up to 5 links to the most relevant sources in the end of the section as a list.
 
 Use markdown syntax to structure the report and provide the information in a clear and organized manner. 
 Use bullet points carefully, only when the list is necessary.<instructions>
 `
+
+const finalReportPrompt string = `<instructions>You are provided with information research results following the search plan.
+
+Compile these results into a final report addressing the information request. 
+Follow the compilation policy to structure the report and provide the information in a clear and organized manner.
+
+Before responding, describe the solution step by step according to the chain of reasoning.
+
+Do not write any introduction or conclusion regarding the quality of your work or your estimation of the results. 
+Conclusions should only relate to the information request itself.
+
+Format your response as markdown text, starting with the title of the report as an h1 heading. 
+Write a very short summary after the title to introduce the report. 
+Then, provide the information in sections according to the search plan. 
+Use bullet points sparingly, only when a list is necessary.
+
+Include a list of references in each section to support the information provided.<instructions>`

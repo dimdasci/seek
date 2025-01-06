@@ -15,8 +15,6 @@ func (s *Service) executeSimpleSearch(
 	query string,
 	policy string,
 ) string {
-	fmt.Printf("Query: %s\n\n", query)
-
 	s.logger.Debug("Simple search",
 		zap.String("query", query),
 		zap.String("policy", policy))

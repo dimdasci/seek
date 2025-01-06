@@ -10,11 +10,14 @@ import (
 
 // executeComplexSearch performs a complex search for the given steps.
 // It returns a string with the search results.
-func (s *Service) executeComplexSearch(ctx context.Context, steps []models.Search) string {
+func (s *Service) executeComplexSearch(ctx context.Context, plan *models.Plan) string {
 	var topics string = ""
+	var outline string = ""
 
-	for i, step := range steps {
+	for i, step := range plan.SearchPlan {
 		policy := fmt.Sprintf("%s\n\n%s", step.SubRequest, step.FinalAnswerOutline)
+
+		outline += fmt.Sprintf("- %d. %s\n", i+1, step.Topic)
 
 		fmt.Printf(
 			"Step %d. %s\n", i+1, step.Topic)
@@ -28,15 +31,15 @@ func (s *Service) executeComplexSearch(ctx context.Context, steps []models.Searc
 
 		switch step.SearchQuery {
 		case "":
-			topics = s.openaiClient.CompileFindings(topics, step.Topic, policy)
-		default:
 			if topics == "" {
 				s.logger.Debug("Topics are empty for an empty search query",
 					zap.Int("step", i+1),
 					zap.String("topic", step.Topic))
 				continue
 			}
-			topics += s.executeSimpleSearch(ctx,
+			topics += "\n\n" + s.openaiClient.CompileFindings(topics, step.Topic, policy)
+		default:
+			topics += "\n\n" + s.executeSimpleSearch(ctx,
 				step.Topic,
 				step.SearchQuery,
 				policy)
@@ -48,5 +51,10 @@ func (s *Service) executeComplexSearch(ctx context.Context, steps []models.Searc
 
 	}
 	fmt.Print("Working on the final answer...\n\n")
-	return topics
+	return s.openaiClient.WriteReport(
+		ctx,
+		&topics,
+		&plan.SearchQuery,
+		&outline,
+		&plan.CompilationPolicy)
 }

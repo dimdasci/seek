@@ -20,6 +20,7 @@ type ReadService struct {
 	logger       *zap.Logger
 	tagsToRemove map[string]struct{}
 	timeout      time.Duration
+	cache        sync.Map
 }
 
 func NewReadService(logger *zap.Logger, timeout time.Duration) *ReadService {
@@ -49,6 +50,11 @@ func (r *ReadService) Read(ctx context.Context, urls []string) (*models.WebPages
 		wg.Add(1)
 		go func(url string) {
 			defer wg.Done()
+			if cached, ok := r.cache.Load(url); ok {
+				r.logger.Debug("Returning cached result", zap.String("url", url))
+				results <- cached.(models.Page)
+				return
+			}
 			r.logger.Debug("Reading web page", zap.String("url", url))
 
 			// if the URL is not valid, skip it
@@ -103,6 +109,7 @@ func (r *ReadService) Read(ctx context.Context, urls []string) (*models.WebPages
 			}
 			r.logger.Debug("Converted HTML to markdown", zap.String("url", url), zap.String("title", title))
 			results <- models.Page{URL: url, Title: title, Content: markdown}
+			r.cache.Store(url, models.Page{URL: url, Title: title, Content: markdown})
 		}(url)
 	}
 
