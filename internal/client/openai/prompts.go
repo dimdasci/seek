@@ -114,7 +114,7 @@ Use the most relevant and authoritative sources from the findings to compile the
 Before responding, describe the solution step by step according to the chain of reasoning.
 
 Format your response as a section of the further report starting with topic as level 2 header. 
-Put links to 2-3 most relevant sources in the end of the section as a list.
+Put up to 5 links to the most relevant sources in the end of the section as a list.
 
 Use markdown syntax to structure the report and provide the information in a clear and organized manner. 
 Use bullet points carefully, only when the list is necessary.<instructions>
