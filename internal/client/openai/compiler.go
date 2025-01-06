@@ -26,7 +26,7 @@ func (c *Client) CompileResults(
 	keyPoints := c.getherKeyPoints(ctx, pages, request, instructions)
 
 	// compile findings
-	return c.compileFindings(keyPoints, *request, *instructions)
+	return c.CompileFindings(keyPoints, *request, *instructions)
 }
 
 // getherKeyPoints gathers key points from relevant pages.
@@ -163,7 +163,7 @@ func (c *Client) analyzePage(
 	return result.Relevance, result.Answer, nil
 }
 
-func (c *Client) compileFindings(results string, topic string, policy string) string {
+func (c *Client) CompileFindings(results string, topic string, policy string) string {
 	c.logger.Info("Compiling findings", zap.String("topic", topic))
 
 	prompt := fmt.Sprintf("%v\n\n"+

@@ -74,7 +74,7 @@ func (s *Service) executePlan(ctx context.Context, plan *models.Plan) (string, e
 	var notes string
 	switch plan.SearchComplexity {
 	case "simple":
-		notes = s.executeSimpleSearch(ctx, *plan.SearchQuery, plan.CompilationPolicy)
+		notes = s.executeSimpleSearch(ctx, *plan.SearchQuery, *plan.SearchQuery, plan.CompilationPolicy)
 	case "complex":
 		notes = s.executeComplexSearch(ctx, plan.SearchPlan)
 	default:

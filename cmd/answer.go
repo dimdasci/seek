@@ -79,6 +79,8 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	answer = fmt.Sprintf("# %s\n\n%s", question, answer)
+
 	// Handle output
 	if outputFile != "" {
 		if err := os.WriteFile(outputFile, []byte(answer), 0644); err != nil {
