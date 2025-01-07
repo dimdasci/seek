@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // versionCmd represents the version command
@@ -17,6 +18,7 @@ var versionCmd = &cobra.Command{
 		fmt.Printf("Version:     %s\n", Version)
 		fmt.Printf("Build Time:  %s\n", BuildTime)
 		fmt.Printf("Git Commit:  %s\n", CommitHash)
+		fmt.Printf("Config File:  %s\n", viper.ConfigFileUsed())
 	},
 }
 
