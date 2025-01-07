@@ -28,12 +28,16 @@ var rootCmd = &cobra.Command{
 Quickly search the web directly from your terminal with a clean,
 POSIX-compliant interface.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Find home directory
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
 		// First read the config file
-		if err := initConfig(); err != nil {
+		if err := initConfig(home); err != nil {
 			return err
 		}
 		// Then initialize the logger
-		if err := initLogger(); err != nil {
+		if err := initLogger(home); err != nil {
 			return err
 		}
 
@@ -62,19 +66,17 @@ func Execute() {
 	}
 }
 
+// init cobra global flags
 func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.seek.yaml)")
 }
 
-func initConfig() error {
+// initConfig reads in config file and ENV variables if set.
+func initConfig(home string) error {
 	if cfgFile != "" {
 		// Use config file from the flag
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
 		// Search config in home directory with name ".seek" (without extension)
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(".")
@@ -93,10 +95,11 @@ func initConfig() error {
 	return err
 }
 
-func initLogger() error {
+// initLogger initializes the logger
+func initLogger(home string) error {
 	// Set default log settings
 	viper.SetDefault("logging.level", "info")
-	viper.SetDefault("logging.file", "./logs/seek.log")
+	viper.SetDefault("logging.file", filepath.Join(home, "logs", "seek.log"))
 
 	// Get log level from config
 	level := viper.GetString("logging.level")
