@@ -35,6 +35,8 @@ You need API keys from these services to use seek.
 
 Openai and tavily api_keys are required. You can also use environment variables with the `SEEK_` prefix. For example, `SEEK_OPENAI_API_KEY` for OpenAI API key. 
 
+Other parameters are optional and have default values.
+
 `.seek.yaml` example:
 
 ```yaml
@@ -62,7 +64,7 @@ webreader:
 
 logging:
   level: "error"
-  file: "~/logs/seek.log"
+  file: "/Users/me/logs/seek.log"
 ```
 
 Place config file in the same directory as the binary or in your home directory.
