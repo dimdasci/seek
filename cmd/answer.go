@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -15,7 +12,6 @@ import (
 	"github.com/dimdasci/seek/internal/service/webread"
 	"github.com/dimdasci/seek/internal/service/websearch"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -32,12 +28,7 @@ var answerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(answerCmd)
 
-	// Set default values for timeouts
-	viper.SetDefault("openai.reasoning.timeout", "60s")
-	viper.SetDefault("websearch.tavily.timeout", "10s")
-	viper.SetDefault("webread.timeout", "10s")
-
-	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the answer (markdown format)")
+	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the result in markdown format")
 }
 
 func runAnswerCmd(cmd *cobra.Command, args []string) {
