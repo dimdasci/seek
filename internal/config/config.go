@@ -11,28 +11,32 @@ import (
 
 type Config struct {
 	Logging struct {
-		Level string
-		File  string
-	}
+		Level string `yaml:"level"`
+		File  string `yaml:"file"`
+	} `yaml:"logging"`
 	OpenAI struct {
-		APIKey     string
-		Reasoning  ServiceConfig
-		Completion ServiceConfig
-	}
+		APIKey     string        `yaml:"api_key"`
+		Reasoning  ServiceConfig `yaml:"reasoning"`
+		Completion ServiceConfig `yaml:"completion"`
+	} `yaml:"openai"`
 	WebSearch struct {
 		Tavily struct {
-			Timeout time.Duration
-		}
-	}
+			Timeout    time.Duration `yaml:"timeout"`
+			APIKey     string        `yaml:"api_key"`
+			SearchURL  string        `yaml:"search_url"`
+			ExtractURL string        `yaml:"extract_url"`
+			MaxResults int           `yaml:"max_results"`
+		} `yaml:"tavily"`
+	} `yaml:"websearch"`
 	WebRead struct {
-		Timeout time.Duration
-	}
+		Timeout time.Duration `yaml:"timeout"`
+	} `yaml:"webreader"`
 }
 
 type ServiceConfig struct {
-	Model     string
-	Timeout   time.Duration
-	MaxTokens int64
+	Model     string        `yaml:"model"`
+	Timeout   time.Duration `yaml:"timeout"`
+	MaxTokens int64         `yaml:"max_tokens"`
 }
 
 var appConfig Config
