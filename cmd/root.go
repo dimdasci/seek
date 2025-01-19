@@ -24,7 +24,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "seek",
 	Short: "A CLI utility for searching the web directly from your terminal",
-	Long: `A lightning-fast command-line search utility written in Go. 
+	Long: `A command-line search utility written in Go. 
 Quickly search the web directly from your terminal with a clean,
 POSIX-compliant interface.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
