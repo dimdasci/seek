@@ -38,9 +38,17 @@ func runReadCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	webReader := webread.NewReadService(logger, cfg.WebRead.Timeout)
+	logger.Debug("Initializing web reader", zap.Duration("timeout", cfg.WebReader.Timeout), zap.Int("min_content_length", cfg.WebReader.MinContentLength))
+	readerFactory, err := webread.NewReaderFactory(logger, cfg.WebReader.Timeout, cfg.WebReader.MinContentLength)
+	if err != nil {
+		logger.Error("Failed to initialize web reader", zap.Error(err))
+		fmt.Printf("Failed to initialize web reader: %v\n", err)
+		return
+	}
+	defer readerFactory.Close()
 
-	webPages, err := webReader.Read(context.Background(), args)
+	reader := readerFactory.GetReader()
+	webPages, err := reader.Read(context.Background(), args)
 	if err != nil {
 		logger.Error("Failed to read web pages", zap.Error(err))
 		fmt.Printf("Failed to read web pages: %v\n", err)

@@ -28,8 +28,9 @@ type Config struct {
 			MaxResults int           `yaml:"max_results"`
 		} `yaml:"tavily"`
 	} `yaml:"websearch"`
-	WebRead struct {
-		Timeout time.Duration `yaml:"timeout"`
+	WebReader struct {
+		Timeout          time.Duration `yaml:"timeout"`
+		MinContentLength int           `yaml:"min_content_length"`
 	} `yaml:"webreader"`
 }
 
@@ -60,12 +61,13 @@ func Load(cfgFile string) error {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	setDefaults()
-
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
 
-	return viper.Unmarshal(&appConfig)
+	setValues()
+
+	return nil
 }
 
 func setDefaults() {
@@ -80,7 +82,30 @@ func setDefaults() {
 	viper.SetDefault("openai.completion.max_tokens", 1000)
 
 	viper.SetDefault("websearch.tavily.timeout", "10s")
-	viper.SetDefault("webread.timeout", "10s")
+	viper.SetDefault("webreader.timeout", "10s")
+	viper.SetDefault("webreader.min_content_length", 128)
+}
+
+func setValues() {
+	appConfig.Logging.Level = viper.GetString("logging.level")
+	appConfig.Logging.File = viper.GetString("logging.file")
+
+	appConfig.OpenAI.APIKey = viper.GetString("openai.api_key")
+	appConfig.OpenAI.Reasoning.Model = viper.GetString("openai.reasoning.model")
+	appConfig.OpenAI.Reasoning.Timeout = viper.GetDuration("openai.reasoning.timeout")
+	appConfig.OpenAI.Reasoning.MaxTokens = viper.GetInt64("openai.reasoning.max_tokens")
+	appConfig.OpenAI.Completion.Model = viper.GetString("openai.completion.model")
+	appConfig.OpenAI.Completion.Timeout = viper.GetDuration("openai.completion.timeout")
+	appConfig.OpenAI.Completion.MaxTokens = viper.GetInt64("openai.completion.max_tokens")
+
+	appConfig.WebSearch.Tavily.Timeout = viper.GetDuration("websearch.tavily.timeout")
+	appConfig.WebSearch.Tavily.APIKey = viper.GetString("websearch.tavily.api_key")
+	appConfig.WebSearch.Tavily.SearchURL = viper.GetString("websearch.tavily.search_url")
+	appConfig.WebSearch.Tavily.ExtractURL = viper.GetString("websearch.tavily.extract_url")
+	appConfig.WebSearch.Tavily.MaxResults = viper.GetInt("websearch.tavily.max_results")
+
+	appConfig.WebReader.Timeout = viper.GetDuration("webreader.timeout")
+	appConfig.WebReader.MinContentLength = viper.GetInt("webreader.min_content_length")
 }
 
 func Get() *Config {

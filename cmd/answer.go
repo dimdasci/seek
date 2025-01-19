@@ -59,7 +59,7 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 	webSearcher := websearch.NewTavilySearchService(logger, cfg.WebSearch.Tavily.Timeout)
-	webReader := webread.NewReadService(logger, cfg.WebRead.Timeout)
+	webReader := webread.NewReadService(logger, cfg.WebReader.Timeout)
 	searchService := search.NewService(openaiClient, webSearcher, webReader, logger)
 
 	// Search for the answer
