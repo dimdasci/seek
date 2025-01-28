@@ -72,7 +72,6 @@ func (b *BrowserReadService) createTableRenderer() converter.HandleRenderFunc {
 			if firstRow == nil {
 				firstRow = tr
 			}
-			b.logger.Debug("Found row", zap.Int("columns", cols))
 		}
 
 		if columnCount == 0 {
