@@ -52,7 +52,7 @@ func (s *Service) SavePages(pages *models.WebPages) {
 }
 
 func (s *Service) SavePage(page models.Page) error {
-	filename := s.generateFilename(page.Title, page.URL)
+	filename := GenerateFilename(page.Title, page.URL)
 	filepath := filepath.Join(s.outputDir, filename)
 
 	if err := os.WriteFile(filepath, []byte(page.Content), 0644); err != nil {
@@ -66,7 +66,7 @@ func (s *Service) SavePage(page models.Page) error {
 	return nil
 }
 
-func (s *Service) generateFilename(title, url string) string {
+func GenerateFilename(title, url string) string {
 	name := title
 	if name == "" {
 		urlParts := strings.Split(strings.TrimRight(url, "/"), "/")

@@ -3,12 +3,17 @@ package webread
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
-	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/dimdasci/seek/internal/models"
+	"github.com/dimdasci/seek/internal/service/filewriter"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"go.uber.org/zap"
@@ -22,6 +27,100 @@ type BrowserReadService struct {
 	cache        sync.Map
 	tagsToRemove map[string]struct{}
 	browser      *rod.Browser
+}
+
+// Create a function that returns the renderer with logger injected
+func (b *BrowserReadService) createTableRenderer() converter.HandleRenderFunc {
+	return func(ctx converter.Context, w converter.Writer, node *html.Node) converter.RenderStatus {
+		// Track number of columns for separator row
+		var columnCount int
+		var firstRow *html.Node
+
+		b.logger.Debug("Starting table rendering")
+
+		// Helper function to process table sections (tbody, thead, tfoot)
+		var findRows func(*html.Node) []*html.Node
+		findRows = func(n *html.Node) []*html.Node {
+			var rows []*html.Node
+			for child := n.FirstChild; child != nil; child = child.NextSibling {
+				if child.Type == html.ElementNode {
+					switch child.Data {
+					case "tr":
+						rows = append(rows, child)
+					case "tbody", "thead", "tfoot":
+						rows = append(rows, findRows(child)...)
+					}
+				}
+			}
+			return rows
+		}
+
+		// Get all rows from the table
+		rows := findRows(node)
+
+		// First pass to count maximum columns
+		for _, tr := range rows {
+			cols := 0
+			for td := tr.FirstChild; td != nil; td = td.NextSibling {
+				if td.Type == html.ElementNode && (td.Data == "td" || td.Data == "th") {
+					cols++
+				}
+			}
+			if cols > columnCount {
+				columnCount = cols
+			}
+			if firstRow == nil {
+				firstRow = tr
+			}
+			b.logger.Debug("Found row", zap.Int("columns", cols))
+		}
+
+		if columnCount == 0 {
+			b.logger.Debug("No columns found in table")
+			return converter.RenderSuccess
+		}
+
+		w.WriteString("\n\n")
+
+		// Helper function to capture cell content
+		var renderCell = func(td *html.Node) string {
+			var builder strings.Builder
+			ctx.RenderChildNodes(ctx, &builder, td)
+
+			// Replace newlines with spaces
+			content := builder.String()
+			content = strings.ReplaceAll(content, "\n", " ")
+			// Remove multiple spaces
+			content = strings.Join(strings.Fields(content), " ")
+			return content
+		}
+
+		// Render each row
+		for _, tr := range rows {
+			w.WriteString("|")
+			for td := tr.FirstChild; td != nil; td = td.NextSibling {
+				if td.Type == html.ElementNode && (td.Data == "td" || td.Data == "th") {
+					w.WriteString(" ")
+					content := renderCell(td)
+					w.WriteString(content)
+					w.WriteString(" |")
+				}
+			}
+			w.WriteString("\n")
+
+			// After first row (headers), add separator
+			if tr == firstRow {
+				w.WriteString("|")
+				for i := 0; i < columnCount; i++ {
+					w.WriteString(" --- |")
+				}
+				w.WriteString("\n")
+			}
+		}
+
+		b.logger.Debug("Finished table rendering")
+		return converter.RenderSuccess
+	}
 }
 
 func NewBrowserReadService(logger *zap.Logger, timeout time.Duration) (*BrowserReadService, error) {
@@ -43,6 +142,7 @@ func NewBrowserReadService(logger *zap.Logger, timeout time.Duration) (*BrowserR
 			"head":   {},
 			"form":   {},
 			"select": {},
+			"iframe": {},
 		},
 		timeout: timeout,
 		browser: browser,
@@ -114,6 +214,14 @@ func (b *BrowserReadService) Read(ctx context.Context, urls []string) (*models.W
 				errors <- models.PageError{URL: url, Error: err.Error()}
 				return
 			}
+			// save raw HTML to file for debugging
+			filename := filewriter.GenerateFilename(title, url)
+			filename = strings.TrimSuffix(filename, ".md") // Remove .md extension
+
+			filepath := fmt.Sprintf("output/interim/raw-%s.html", filename)
+			if err := os.WriteFile(filepath, []byte(rawHTML), 0644); err != nil {
+				b.logger.Error("Failed to save raw HTML to file", zap.String("url", url), zap.Error(err))
+			}
 
 			// Parse and clean HTML
 			doc, err := html.Parse(strings.NewReader(rawHTML))
@@ -133,8 +241,24 @@ func (b *BrowserReadService) Read(ctx context.Context, urls []string) (*models.W
 			}
 			cleanedHTML := buf.String()
 
-			// Convert HTML to markdown
-			markdown, err := htmltomarkdown.ConvertString(cleanedHTML)
+			// save cleaned HTML to file for debugging
+			filepath = fmt.Sprintf("output/interim/cleaned-%s.html", filename)
+			if err := os.WriteFile(filepath, []byte(cleanedHTML), 0644); err != nil {
+				b.logger.Error("Failed to save cleaned HTML to file", zap.String("url", url), zap.Error(err))
+			}
+
+			// Convert HTML to markdown with custom table support
+			conv := converter.NewConverter(
+				converter.WithPlugins(
+					base.NewBasePlugin(),
+					commonmark.NewCommonmarkPlugin(),
+				),
+			)
+
+			// Register the table renderer using the closure
+			conv.Register.RendererFor("table", converter.TagTypeBlock, b.createTableRenderer(), converter.PriorityStandard)
+
+			markdown, err := conv.ConvertString(cleanedHTML)
 
 			if err != nil {
 				b.logger.Error("Failed to convert HTML to markdown", zap.String("url", url), zap.Error(err))
