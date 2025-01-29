@@ -77,6 +77,8 @@ func (r *ReadService) Read(ctx context.Context, urls []string) (*models.WebPages
 				errors <- models.PageError{URL: url, Error: err.Error()}
 				return
 			}
+			r.logger.Debug("Fetched HTML content", zap.String("url", url),
+				zap.Int("length", len(htmlContent)))
 
 			doc, err := html.Parse(strings.NewReader(htmlContent))
 			if err != nil {
@@ -99,7 +101,7 @@ func (r *ReadService) Read(ctx context.Context, urls []string) (*models.WebPages
 				return
 			}
 			cleanedHTML := buf.String()
-
+			r.logger.Debug("Cleaned HTML", zap.String("url", url), zap.Int("length", len(cleanedHTML)))
 			markdown, err := htmltomarkdown.ConvertString(cleanedHTML)
 
 			if err != nil {

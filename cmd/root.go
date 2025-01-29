@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/dimdasci/seek/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -24,20 +24,14 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "seek",
 	Short: "A CLI utility for searching the web directly from your terminal",
-	Long: `A lightning-fast command-line search utility written in Go. 
+	Long: `A command-line search utility written in Go. 
 Quickly search the web directly from your terminal with a clean,
 POSIX-compliant interface.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Find home directory
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// First read the config file
-		if err := initConfig(home); err != nil {
+		if err := config.Load(cfgFile); err != nil {
 			return err
 		}
-		// Then initialize the logger
-		if err := initLogger(home); err != nil {
+		if err := initLogger(); err != nil {
 			return err
 		}
 
@@ -71,47 +65,15 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.seek.yaml)")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig(home string) error {
-	if cfgFile != "" {
-		// Use config file from the flag
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in home directory with name ".seek" (without extension)
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".seek")
-	}
-
-	viper.SetEnvPrefix("SEEK") // Set prefix for environment variables
-	viper.AutomaticEnv()       // read in environment variables that match
-
-	// Replace dots with underscores in env variables
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	// If a config file is found, read it in
-	err := viper.ReadInConfig()
-	return err
-}
-
 // initLogger initializes the logger
-func initLogger(home string) error {
-	// Set default log settings
-	viper.SetDefault("logging.level", "info")
-	viper.SetDefault("logging.file", filepath.Join(home, "logs", "seek.log"))
-
-	// Get log level from config
-	level := viper.GetString("logging.level")
-	logLevel, err := zapcore.ParseLevel(level)
+func initLogger() error {
+	cfg := config.Get()
+	logLevel, err := zapcore.ParseLevel(cfg.Logging.Level)
 	if err != nil {
 		return err
 	}
 
-	// Get log file path from config
-	logFile := viper.GetString("logging.file")
-
-	// Ensure log directory exists
+	logFile := cfg.Logging.File
 	logDir := filepath.Dir(logFile)
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return err
@@ -143,8 +105,8 @@ func initLogger(home string) error {
 
 	// Log the logger settings
 	logger.Debug("Logger initialized",
-		zap.String("level", level),
-		zap.String("file", logFile),
+		zap.String("level", cfg.Logging.Level),
+		zap.String("file", cfg.Logging.File),
 	)
 
 	return nil
