@@ -27,6 +27,13 @@ type Config struct {
 			ExtractURL string        `yaml:"extract_url"`
 			MaxResults int           `yaml:"max_results"`
 		} `yaml:"tavily"`
+		Google struct {
+			Timeout    time.Duration `yaml:"timeout"`
+			APIKey     string        `yaml:"api_key"`
+			CX         string        `yaml:"cx"`
+			SearchURL  string        `yaml:"search_url"`
+			MaxResults int           `yaml:"max_results"`
+		} `yaml:"google"`
 	} `yaml:"websearch"`
 	WebReader struct {
 		Timeout          time.Duration `yaml:"timeout"`
@@ -84,6 +91,9 @@ func setDefaults() {
 	viper.SetDefault("websearch.tavily.timeout", "10s")
 	viper.SetDefault("webreader.timeout", "10s")
 	viper.SetDefault("webreader.min_content_length", 128)
+
+	viper.SetDefault("websearch.google.timeout", "5s")
+	viper.SetDefault("websearch.google.max_results", 10)
 }
 
 func setValues() {
@@ -103,6 +113,12 @@ func setValues() {
 	appConfig.WebSearch.Tavily.SearchURL = viper.GetString("websearch.tavily.search_url")
 	appConfig.WebSearch.Tavily.ExtractURL = viper.GetString("websearch.tavily.extract_url")
 	appConfig.WebSearch.Tavily.MaxResults = viper.GetInt("websearch.tavily.max_results")
+
+	appConfig.WebSearch.Google.Timeout = viper.GetDuration("websearch.google.timeout")
+	appConfig.WebSearch.Google.APIKey = viper.GetString("websearch.google.api_key")
+	appConfig.WebSearch.Google.CX = viper.GetString("websearch.google.cx")
+	appConfig.WebSearch.Google.SearchURL = viper.GetString("websearch.google.search_url")
+	appConfig.WebSearch.Google.MaxResults = viper.GetInt("websearch.google.max_results")
 
 	appConfig.WebReader.Timeout = viper.GetDuration("webreader.timeout")
 	appConfig.WebReader.MinContentLength = viper.GetInt("webreader.min_content_length")

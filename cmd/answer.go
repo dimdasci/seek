@@ -58,7 +58,7 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 		fmt.Printf("Failed to create OpenAI client: %v\n", err)
 		return
 	}
-	webSearcher := websearch.NewTavilySearchService(logger, cfg.WebSearch.Tavily.Timeout)
+	webSearcher := websearch.NewTavilySearch(logger, cfg)
 	webReader := webread.NewReadService(logger, cfg.WebReader.Timeout)
 	searchService := search.NewService(openaiClient, webSearcher, webReader, logger)
 

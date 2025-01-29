@@ -20,7 +20,7 @@ func (s *Service) executeSimpleSearch(
 		zap.String("policy", policy))
 
 	// perform web search
-	results, err := s.searcher.Search(ctx, query)
+	results, err := s.searcher.Search(ctx, query, nil)
 	if err != nil {
 		s.logger.Error("Service: failed to search for answer",
 			zap.Error(err))

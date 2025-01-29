@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dimdasci/seek/internal/config"
 	"github.com/dimdasci/seek/internal/models" // Adjust the import path accordingly
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -23,12 +24,12 @@ type TavilySearchService struct {
 }
 
 // NewTavilySearchService creates a new instance of TavilySearchService.
-func NewTavilySearchService(logger *zap.Logger, timeout time.Duration) *TavilySearchService {
+func NewTavilySearch(logger *zap.Logger, cfg *config.Config) *TavilySearchService {
 	return &TavilySearchService{
-		APIKey:  viper.GetString("websearch.tavily.api_key"),
-		BaseURL: viper.GetString("websearch.tavily.search_url"),
+		APIKey:  cfg.WebSearch.Tavily.APIKey,
+		BaseURL: cfg.WebSearch.Tavily.SearchURL,
 		logger:  logger,
-		timeout: timeout,
+		timeout: cfg.WebSearch.Tavily.Timeout,
 	}
 }
 
@@ -40,7 +41,7 @@ type TavilyResponse struct {
 
 // Search performs a web search using the Tavily API.
 // It returns the answer and search results, or an error.
-func (s *TavilySearchService) Search(ctx context.Context, query string) ([]models.SearchResult, error) {
+func (s *TavilySearchService) Search(ctx context.Context, query string, opts *SearchOptions) ([]models.SearchResult, error) {
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"query":          query,
 		"max_results":    viper.GetInt("websearch.tavily.max_results"),
