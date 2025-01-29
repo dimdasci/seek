@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -10,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/dimdasci/seek/internal/client/openai"
+	"github.com/dimdasci/seek/internal/config"
 	"github.com/dimdasci/seek/internal/service/search"
 	"github.com/dimdasci/seek/internal/service/webread"
 	"github.com/dimdasci/seek/internal/service/websearch"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -31,21 +28,15 @@ var answerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(answerCmd)
 
-	// Set default values for timeouts
-	viper.SetDefault("openai.reasoning.timeout", "60s")
-	viper.SetDefault("websearch.tavily.timeout", "10s")
-	viper.SetDefault("webread.timeout", "10s")
-
-	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the answer (markdown format)")
+	answerCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file for the result in markdown format")
 }
 
 func runAnswerCmd(cmd *cobra.Command, args []string) {
-	// Combine all args into the question
 	question := strings.Join(args, " ")
 	logger.Info("Searching for an answer", zap.String("question", question))
 
-	apiKey := viper.GetString("openai.api_key")
-	if apiKey == "" {
+	cfg := config.Get()
+	if cfg.OpenAI.APIKey == "" {
 		logger.Error("OpenAI API key not found. Exiting...")
 		fmt.Println("OpenAI API key not found. Exiting...")
 		return
@@ -53,22 +44,22 @@ func runAnswerCmd(cmd *cobra.Command, args []string) {
 
 	// Initialize clients and services
 	openaiClient, err := openai.NewClient(
-		apiKey,
+		cfg.OpenAI.APIKey,
 		logger,
-		viper.GetString("openai.reasoning.model"),
-		viper.GetString("openai.completion.model"),
-		viper.GetDuration("openai.reasoning.timeout"),
-		viper.GetDuration("openai.completion.timeout"),
-		viper.GetInt64("openai.reasoning.max_tokens"),
-		viper.GetInt64("openai.completion.max_tokens"),
+		cfg.OpenAI.Reasoning.Model,
+		cfg.OpenAI.Completion.Model,
+		cfg.OpenAI.Reasoning.Timeout,
+		cfg.OpenAI.Completion.Timeout,
+		cfg.OpenAI.Reasoning.MaxTokens,
+		cfg.OpenAI.Completion.MaxTokens,
 	)
 	if err != nil {
 		logger.Error("Failed to create OpenAI client", zap.Error(err))
 		fmt.Printf("Failed to create OpenAI client: %v\n", err)
 		return
 	}
-	webSearcher := websearch.NewTavilySearchService(logger, viper.GetDuration("websearch.tavily.timeout"))
-	webReader := webread.NewReadService(logger, viper.GetDuration("webread.timeout"))
+	webSearcher := websearch.NewTavilySearchService(logger, cfg.WebSearch.Tavily.Timeout)
+	webReader := webread.NewReadService(logger, cfg.WebReader.Timeout)
 	searchService := search.NewService(openaiClient, webSearcher, webReader, logger)
 
 	// Search for the answer
