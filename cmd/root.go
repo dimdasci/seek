@@ -44,8 +44,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig, initLogging)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is .seek.yaml)")
-	rootCmd.PersistentFlags().StringVar(&output, "output", "stdout", "output file (default is stdout)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "stdout", "output file")
 
 	viper.SetDefault("logging.level", "info")
 	viper.SetDefault("logging.file", "logs/seek.log")
