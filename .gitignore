@@ -33,3 +33,6 @@ logs/
 .DS_Store
 output/
 data/
+
+# the seek cli
+.cursor

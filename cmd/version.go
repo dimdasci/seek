@@ -16,6 +16,7 @@ var versionCmd = &cobra.Command{
 		fmt.Printf("Build Time:  %s\n", BuildTime)
 		fmt.Printf("Git Commit:  %s\n", CommitHash)
 		fmt.Printf("Config File:  %s\n", viper.ConfigFileUsed())
+		fmt.Printf("Log File:     %s\n", viper.GetString("logging.file"))
 	},
 }
 
