@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/dimdasci/seek/internal/logging"
 	"github.com/dimdasci/seek/internal/search"
+	"github.com/dimdasci/seek/internal/search/engines"
 )
 
 var (
@@ -48,6 +50,10 @@ seek search --include-domain github.com "go testing examples"`,
 
 	// Add command to root
 	rootCmd.AddCommand(searchCmd)
+
+	// Add default configuration
+	viper.SetDefault("search.timeout", 10*time.Second)
+	viper.SetDefault("search.engine", "google")
 }
 
 func runSearch(cmd *cobra.Command, args []string) error {
@@ -85,12 +91,38 @@ func runSearch(cmd *cobra.Command, args []string) error {
 	)
 
 	// Create context with timeout
-	_, cancel := context.WithTimeout(cmd.Context(), criteria.TimeoutDuration)
+	ctx, cancel := context.WithTimeout(cmd.Context(), criteria.TimeoutDuration)
 	defer cancel()
 
-	// For now, just print a message
-	cmd.Printf("Searching for: <%s> using %s engine (max results: %d)\n",
-		query, searchEngine, maxResults)
+	// Create search engine
+	var engine search.Engine
+	var err error
+
+	switch searchEngine {
+	case "google":
+		engine, err = engines.NewGoogleEngine(
+			viper.GetString("search.google_api_key"),
+			viper.GetString("search.google_cx"),
+			viper.GetString("search.google_search_url"),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create search engine: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported search engine: %s", searchEngine)
+	}
+
+	// Perform search
+	results, err := engine.Search(ctx, criteria)
+	if err != nil {
+		return fmt.Errorf("search failed: %w", err)
+	}
+
+	// Print results
+	for _, result := range results {
+		cmd.Printf("\nTitle: %s\nURL: %s\nSnippet: %s\n",
+			result.Title, result.URL, result.Snippet)
+	}
 
 	return nil
 }
