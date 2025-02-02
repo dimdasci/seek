@@ -1,0 +1,129 @@
+# Seek CLI Project Rules
+
+## Code Organization
+- All application code must be in the `seek/` directory
+- Main application logic goes in `cmd/` and `internal/` directories
+- Domain-specific code belongs in appropriate subdirectories under `internal/`
+- Configuration files belong in project root (seek.yaml)
+- Tests should be in `_test.go` files alongside the code they test
+
+## Code Style & Standards
+- All code must be formatted with `go fmt`
+- Use `goimports` for import organization
+- Follow golangci-lint rules
+- Use package-level and function-level comments to document code
+- Keep interfaces small and focused (prefer 1-3 methods)
+- Use composition over inheritance
+- Return errors rather than logging them in library code
+
+## File & Package Structure
+- Entry point must be in cmd/seek/main.go
+- Each command (search, read, answer) gets its own file in cmd/
+- Domain logic must be in internal/ subdirectories:
+  - internal/search/ - Search functionality
+  - internal/content/ - Content extraction
+  - internal/output/ - Output handling
+  - internal/config/ - Configuration
+  - internal/logging/ - Logging setup
+  - internal/util/ - Shared utilities
+
+## Error Handling
+- Functions should return errors rather than panic
+- Use context.Context for cancellation and timeouts
+- Skip failing items in batch operations and continue processing
+- Return non-zero exit codes on failures
+- Log errors for failed page loads as normal behavior
+- Retry strategy:
+  - Use simple retry with max attempts for transient failures
+  - No circuit breaker implementation needed
+  - No complex retry mechanisms
+
+## Interfaces & Types
+- Define interfaces where they are consumed
+- Keep interfaces minimal and focused
+- Use standard Go interfaces when possible
+- Implement proper error types in internal/util/errors.go
+
+## Configuration
+- Use Viper for configuration management
+- Configuration file must be seek.yaml
+- Support environment variable overrides
+- API keys and credentials must be configurable
+
+## Logging
+- Use Zap for structured logging
+- Initialize logger once at startup
+- Log at appropriate levels (debug, info, error)
+- Include relevant context in log messages
+
+## Testing
+- Write unit tests for all packages
+- Include integration tests for end-to-end flows
+- Use table-driven tests where appropriate
+- Mock external dependencies in tests
+- Maintain good test coverage
+
+## Concurrency
+- Use goroutines and channels appropriately
+- Implement proper concurrency limits
+- Use sync.WaitGroup for parallel operations
+- Implement rate limiting for API calls
+
+## Documentation
+- Maintain clear package documentation
+- Document public APIs and interfaces
+- Include usage examples in command help text
+- Keep README up to date
+
+## Dependencies
+- Minimize external dependencies
+- Use go modules for dependency management
+- Pin dependency versions in go.mod
+- Regularly update dependencies
+
+## Security
+- Validate user input
+- Sanitize URLs before fetching
+- Implement timeouts for network operations
+- Handle credentials securely
+
+## Output
+- Support multiple output formats (stdout, file, S3)
+- Use consistent output formatting
+- Implement proper error messages
+- Support quiet/verbose modes via flags
+
+## Content Processing
+- No versioning needed for responses/documents (stateless CLI)
+- Handle only first page of search results - no pagination support
+- Use ephemeral in-memory caching only - no persistent caching
+- Choose Processor explicitly by document type (HTML or PDF)
+- Use headless browser (rod) for JavaScript-rendered content
+- Use single browser instance with pool of Pages for concurrent fetches
+
+## Performance & Scaling
+- Performance optimization is out of scope for first version
+- No metrics/tracing implementation needed
+- Rate limiting:
+  - Implementation:
+    - Use golang.org/x/time/rate for token bucket/leaky bucket
+    - Configure backoff parameters in seek.yaml
+    - Default concurrent fetch limit: 5-10 requests
+
+## Testing & Integration
+- Mock AI service responses for integration tests
+- Mock external APIs in CI environment
+- Use Go HTTP test server for external service mocking
+- No need for complex secrets management in tests
+
+## Concurrency Guidelines
+- Use worker pools for URL fetching with configurable limits
+- Implement timeouts for all network operations
+- Default timeout values must be specified in seek.yaml
+- Handle graceful shutdown of concurrent operations
+
+## API Integration
+- Store API keys directly in YAML or environment variables
+- Configure separate rate limits for each search engine
+- Define retry policies per external service
+- Log all API failures with appropriate context 

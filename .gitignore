@@ -36,3 +36,4 @@ data/
 
 # the seek cli
 .cursor
+.info.md
